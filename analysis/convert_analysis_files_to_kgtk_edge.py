@@ -56,7 +56,23 @@ class KGTKAnalysis(object):
         df_r = pd.DataFrame(r)
         df_r.to_csv(f'{self.p_ath}/properties-for-V3.2.0_KB-nodes.tsv', sep='\t', index=False)
 
-    def property_english_labels_only(self, property_labels_id_file, qnodes_maa_labels_id_file):
+    def find_all_properties_for_values(self):
+        df = pd.read_csv(f'{self.p_ath}/property-labels-for-V3.2.0_KB_edge.tsv', sep='\t')
+        df = df.loc[df['label'] == 'label']
+        df = df[df.node2.str.endswith("@en")]
+        r = []
+        for i, row in df.iterrows():
+            node2 = row['node2'][:-3].replace("'", "")
+            if not (node2.lower().endswith('id') or node2.lower().endswith('identifier')):
+                r.append({'node1': row['node1'], 'label': 'label', 'node2': node2})
+        rdf = pd.DataFrame(r)
+        rdf.to_csv(f'{self.p_ath}/non-identifier-properties-for-V3.2.0.tsv', sep='\t', index=False)
+
+    # @staticmethod
+    # def english_labels(lbl_string):
+    #     labels = lbl_string.split('\')
+
+    def property_english_labels_only(self, property_labels_id_file, qnodes_maa_labels_id_file, node2_labels_file):
 
         df_properties = pd.read_csv(f'{self.p_ath}/{property_labels_id_file}', sep='\t').fillna('')
         df_properties = df_properties.loc[df_properties['label'].isin(['label'])]
@@ -72,7 +88,21 @@ class KGTKAnalysis(object):
         df_qnodes.drop(columns=['node2', 'label', 'id'], inplace=True)
         df_qnodes.rename(columns={'clean_node2': 'label'}, inplace=True)
 
-        df = pd.concat([df_properties, df_qnodes])
+        df_node2 = pd.read_csv(f'{self.p_ath}/{node2_labels_file}', sep='\t').fillna('')
+        df_node2 = df_node2.loc[df_node2['label'].isin(['label'])]
+        df_node2['clean_node2'] = df_node2['node2'].map(lambda x: self.clean_string_en(x))
+        df_node2 = df_node2[df_node2.clean_node2.notnull()]
+        df_node2.drop(columns=['node2', 'label', 'id'], inplace=True)
+        df_node2.rename(columns={'clean_node2': 'label'}, inplace=True)
+
+        df = pd.concat([df_properties, df_qnodes, df_node2])
+
+        df.drop_duplicates(inplace=True)
 
         df.to_csv(f'{self.p_ath}/qnodes-properties-labels-for-V3.2.0_KB.tsv', sep='\t', index=False,
                   quoting=csv.QUOTE_NONE)
+
+
+ka = KGTKAnalysis('/Users/amandeep/Github/maa-analysis/MAA_Datasets/v3.2.0')
+ka.property_english_labels_only('property-labels-for-V3.2.0_KB_edge_id.tsv', 'wikidata_maa_labels_edges_with_id.tsv',
+                                'node2-labels-for-V3.2.0_KB_edge_id.tsv')

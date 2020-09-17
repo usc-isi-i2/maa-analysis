@@ -29,19 +29,48 @@ python find_all_properties.py -f $v_path -s $v_path/wikidata_maa_subgraph_sorted
 kgtk ifexists -i $f_path/wikidata-20200803-all-nodes.tsv.gz --input-keys id \
   --filter-on $v_path/properties-for-V3.2.0_KB-nodes.tsv --filter-keys node1 --mode NONE >$v_path/property-labels-for-V3.2.0_KB.tsv
 
+
+
 # step 7
 kgtk normalize-nodes -i $v_path/property-labels-for-V3.2.0_KB.tsv -o $v_path/property-labels-for-V3.2.0_KB_edge.tsv
 
 # step 8
 kgtk add-id -i $v_path/property-labels-for-V3.2.0_KB_edge.tsv -o $v_path/property-labels-for-V3.2.0_KB_edge_id.tsv --id-style node1-label-num
 
-# step 9
-python create_labels_qnodes_properties.py -f $v_path -p $v_path/property-labels-for-V3.2.0_KB_edge_id.tsv -q $v_path/wikidata_maa_labels_edges_with_id.tsv
 
-# step 10 run text embeddings
+# step 9
+kgtk ifexists -i $f_path/wikidata-20200803-all-nodes.tsv.gz --input-keys id \
+  --filter-on $/v_path/wikidata_maa_subgraph_sorted_2.tsv  --filter-keys node2 --mode NONE > $v_path/node2-labels-for-V3.2.0_KB.tsv
+
+# step 10
+kgtk normalize-nodes -i $v_path/node2-labels-for-V3.2.0_KB.tsv -o $v_path/node2-labels-for-V3.2.0_KB_edge.tsv
+
+# step 11
+kgtk add-id -i $v_path/node2-labels-for-V3.2.0_KB_edge.tsv -o $v_path/node2-labels-for-V3.2.0_KB_edge_id.tsv --id-style node1-label-num
+
+# step 12
+python create_labels_qnodes_properties.py -f $v_path -p $v_path/property-labels-for-V3.2.0_KB_edge_id.tsv -q $v_path/wikidata_maa_labels_edges_with_id.tsv \
+-n $v_path/node2-labels-for-V3.2.0_KB_edge_id.tsv
+
+
+# step 13 run text embeddings
 kgtk text-embedding $v_path/wikidata_maa_subgraph_sorted_2.tsv \
   --model roberta-large-nli-mean-tokens \
   --property-labels-file $v_path/qnodes-properties-labels-for-V3.2.0_KB.tsv \
   --parallel 1 --debug \
-  --property-value all \
+  --isa-properties P31 P279 P106 P39 P1382 P373 P452 \
   --save-embedding-sentence > $v_path/text_embeddings_all.tsv
+#
+#kgtk text-embedding $v_path/10000.tsv \
+#  --model roberta-large-nli-mean-tokens \
+#  --property-labels-file $v_path/qnodes-properties-labels-for-V3.2.0_KB.tsv \
+#  --parallel 1 --debug \
+#  --property-value-file $v_path/non-identifier-properties-for-V3.2.0.tsv \
+#  --save-embedding-sentence > $v_path/text_embeddings_10000.tsv
+
+#kgtk text-embedding $v_path/10000.tsv \
+#  --model roberta-large-nli-mean-tokens \
+#  --property-labels-file $v_path/qnodes-properties-labels-for-V3.2.0_KB.tsv \
+#  --parallel 1 --debug \
+#  --isa-properties P31 P279 P106 P39 P1382 P373 P452
+#  --save-embedding-sentence > $v_path/text_embeddings_10000.tsv

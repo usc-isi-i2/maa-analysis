@@ -1,38 +1,41 @@
-import json
+import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-# f_path = '/Users/amandeep/Github/maa-analysis/MAA_Datasets/text_embeddings_1000.tsv'
-f_path = '/Users/amandeep/Github/maa-analysis/MAA_Datasets/text_embeddings_all.tsv'
-o_f = open('similarity_all.jl', 'w')
-embeddings = {}
-f = open(f_path)
-for line in f:
-    if not line.startswith('node'):
-        node1, label, embedding = line.strip().split('\t')
-        if label == 'text_embedding':
-            embeddings[node1] = embedding.split(',')
 
+class CosineSimilarity(object):
+    def __init__(self, embedding_file, labels_file):
+        self.embedding_dict = self.create_embedding_dict(embedding_file)
+        self.labels_dict = self.create_labels_dict(labels_file)
 
-def if_exists(k1, k2, d):
-    if f'{k1}_{k2}' not in d and f'{k2}_{k1}' not in d:
-        return False
-    return True
+    def create_labels_dict(self, labels_file):
+        all_labels_df = pd.read_csv(labels_file, sep='\t')
+        labels_dict = {}
+        for i, row in all_labels_df.iterrows():
+            labels_dict[row['node1']] = row['label']
+        return labels_dict
 
+    def create_embedding_dict(self, embedding_file):
+        f = open(embedding_file)
+        _ = {}
+        for line in f:
+            vals = line.strip().split('\t')
+            if vals[0].startswith('Q'):
+                if vals[0] not in _:
+                    _[vals[0]] = {}
+                if vals[1] == 'text_embedding':
+                    _[vals[0]]['t'] = [vals[2].split(',')]
+                if vals[1] == 'embedding_sentence':
+                    _[vals[0]]['s'] = vals[2]
+        return _
 
-# calculate cosine similarity
-c_similarity = {}
-for k1 in embeddings:
-    print(k1)
-    for k2 in embeddings:
-        if k1 != k2:
-            sim = cosine_similarity([embeddings[k1]], [embeddings[k2]])[0][0]
-            # if sim >= 0.9:
-            #     print(k1, k2, sim)
-
-            if not if_exists(k1, k2, c_similarity):
-                c_similarity[f'{k1}_{k2}'] = sim
-                o_f.write(json.dumps({f'{k1}_{k2}': sim}))
-                o_f.write('\n')
-
-c_similarity = {k: v for k, v in sorted(c_similarity.items(), key=lambda item: item[1])}
-open('similarity.json', 'w').write(json.dumps(c_similarity, indent=2))
+    def compute_similarity(self, qnode1, qnode2):
+        if qnode1 not in self.embedding_dict or qnode2 not in self.embedding_dict:
+            return -1
+        sim = cosine_similarity(self.embedding_dict[qnode1]['t'], self.embedding_dict[qnode2]['t'])[0][0]
+        return {
+            'sim': sim,
+            'qnode1_label': self.labels_dict[qnode1],
+            'qnode1_sentence': self.embedding_dict[qnode1]['s'],
+            'qnode2_label': self.labels_dict[qnode2],
+            'qnode2_sentence': self.embedding_dict[qnode2]['s']
+        }
