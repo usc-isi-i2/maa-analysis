@@ -1,6 +1,7 @@
 import faiss
 import numpy as np
 import pandas as pd
+import gzip
 
 
 class FAISSIndex(object):
@@ -22,7 +23,10 @@ class FAISSIndex(object):
         return labels_dict
 
     def build_index(self):
-        f = open(self.text_embedding_path)
+        if self.text_embedding_path.endswith(".gz"):
+            f = gzip.open(self.text_embedding_path, mode='rt')
+        else:
+            f = open(self.text_embedding_path)
         id = 0
         ids = []
         vectors = []
@@ -42,37 +46,9 @@ class FAISSIndex(object):
                     self.qnode_to_vector_dict[vals[0]] = np.array([x])
                     ids.append(self.qnode_to_id_dict[vals[0]])
                     vectors.append(x)
-                    index = faiss.IndexFlatL2(1024)
+                    index = faiss.IndexFlatL2(len(x))
                     if self.index is None:
                         # self.index = faiss.IndexFlatL2(len(x))
                         self.index = faiss.IndexIDMap(index)
 
         self.index.add_with_ids(np.array(vectors), np.array(ids))
-
-
-fi = FAISSIndex('/Users/amandeep/Github/maa-analysis/MAA_Datasets/v3.2.0/text_embeddings_all.tsv',
-                '/Users/amandeep/Github/maa-analysis/MAA_Datasets/v3.2.0/qnodes-properties-labels-for-V3.2.0_KB.tsv')
-fi.build_index()
-
-results = []
-
-queries = ['Q37828', 'Q48989064', 'Q271997', 'Q48989064', 'Q159683', 'Q127956']
-for qn in queries:
-    d, i = fi.index.search(fi.qnode_to_vector_dict[qn], 5)
-    for h, g in enumerate(i[0]):
-        qnode = fi.id_to_qnode_dict[g]
-        if qn != qnode:
-            results.append({
-                'sim': d[0][h],
-                'qnode1': qn,
-                'qnode1_label': fi.qnode_to_label_dict[qn],
-                'qnode1_sentence': fi.qnode_to_sentence_dict[qn],
-                'qnode2': qnode,
-                'qnode2_label': fi.qnode_to_label_dict[qnode],
-                'qnode2_sentence': fi.qnode_to_sentence_dict[qnode]
-
-            })
-            print(d[0][h], qnode, fi.qnode_to_sentence_dict[qnode])
-
-df = pd.DataFrame(results)
-df.to_csv('/tmp/faiss_sim.tsv', index=False, sep='\t')
