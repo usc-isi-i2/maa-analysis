@@ -8,7 +8,6 @@ class FAISSIndex(object):
     def __init__(self, text_embedding_path, labels_file_path):
         self.text_embedding_path = text_embedding_path
         self.index = None
-        # self.index = faiss.IndexIDMap()
         self.qnode_to_id_dict = {}
         self.qnode_to_vector_dict = {}
         self.id_to_qnode_dict = {}
@@ -42,13 +41,30 @@ class FAISSIndex(object):
                     id += 1
                     x = vals[2].strip().split(',')
                     x = [np.float32(r) for r in x]
-                    # vectors = np.array([x])
                     self.qnode_to_vector_dict[vals[0]] = np.array([x])
                     ids.append(self.qnode_to_id_dict[vals[0]])
                     vectors.append(x)
                     index = faiss.IndexFlatL2(len(x))
                     if self.index is None:
-                        # self.index = faiss.IndexFlatL2(len(x))
                         self.index = faiss.IndexIDMap(index)
 
         self.index.add_with_ids(np.array(vectors), np.array(ids))
+
+    def nearest_neighbors(self, query_qnode, k=5):
+        results = []
+        d, i = self.index.search(self.qnode_to_vector_dict[query_qnode], k)
+        for h, g in enumerate(i[0]):
+            qnode = self.id_to_qnode_dict[g]
+            if query_qnode != qnode:
+                results.append({
+                    'sim': d[0][h],
+                    'qnode1': query_qnode,
+                    'qnode1_label': self.qnode_to_label_dict[query_qnode],
+                    'qnode1_sentence': self.qnode_to_sentence_dict[query_qnode],
+                    'qnode2': qnode,
+                    'qnode2_label': self.qnode_to_label_dict[qnode],
+                    'qnode2_sentence': self.qnode_to_sentence_dict[qnode]
+
+                })
+
+        return results
