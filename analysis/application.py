@@ -14,9 +14,12 @@ fi.build_index()
 
 @app.route('/similarity/faiss/nn/<qnode>', methods=['GET'])
 def faiss_nn(qnode):
-    k = request.args.get("k", 5)
-    results = fi.nearest_neighbors(qnode, k)
-    return json.dumps(results), 200
+    try:
+        k = request.args.get("k", 5)
+        results = fi.nearest_neighbors(qnode, k)
+        return json.dumps(results), 200
+    except Exception as e:
+        return {'Error': str(e)}, 500
 
 
 @app.route('/')

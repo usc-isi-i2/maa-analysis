@@ -52,7 +52,7 @@ class FAISSIndex(object):
 
     def nearest_neighbors(self, query_qnode, k=5):
         results = []
-        d, i = self.index.search(self.qnode_to_vector_dict[query_qnode], k)
+        d, i = self.index.search(self.qnode_to_vector_dict[query_qnode], int(k+1))
         for h, g in enumerate(i[0]):
             qnode = self.id_to_qnode_dict[g]
             if query_qnode != qnode:
