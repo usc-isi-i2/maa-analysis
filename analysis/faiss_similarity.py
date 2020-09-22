@@ -50,21 +50,24 @@ class FAISSIndex(object):
 
         self.index.add_with_ids(np.array(vectors), np.array(ids))
 
-    def nearest_neighbors(self, query_qnode, k=5):
+    def nearest_neighbors(self, query_qnode, k=5, debug=False):
+        if query_qnode not in self.qnode_to_vector_dict:
+            return None
         results = []
         d, i = self.index.search(self.qnode_to_vector_dict[query_qnode], k)
         for h, g in enumerate(i[0]):
             qnode = self.id_to_qnode_dict[g]
             if query_qnode != qnode:
-                results.append({
+                _ = {
                     'sim': float(d[0][h]),
                     'qnode1': query_qnode,
                     'qnode1_label': self.qnode_to_label_dict[query_qnode],
-                    'qnode1_sentence': self.qnode_to_sentence_dict[query_qnode],
                     'qnode2': qnode,
-                    'qnode2_label': self.qnode_to_label_dict[qnode],
-                    'qnode2_sentence': self.qnode_to_sentence_dict[qnode]
-
-                })
+                    'qnode2_label': self.qnode_to_label_dict[qnode]
+                }
+                if debug:
+                    _['qnode1_sentence'] = self.qnode_to_sentence_dict[query_qnode]
+                    _['qnode2_sentence'] = self.qnode_to_sentence_dict[qnode]
+                results.append(_)
 
         return results

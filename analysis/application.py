@@ -17,7 +17,10 @@ fi.build_index()
 def faiss_nn(qnode):
     try:
         k = int(request.args.get("k", 5)) + 1
-        results = fi.nearest_neighbors(qnode, k)
+        debug = request.args.get("debug", "false").lower() == 'true'
+        results = fi.nearest_neighbors(qnode, k, debug=debug)
+        if results is None:
+            return {'Message': f'Qnode:{qnode} not found in the similarity index'}, 404
         return json.dumps(results), 200
     except Exception as e:
         traceback.print_exc()
