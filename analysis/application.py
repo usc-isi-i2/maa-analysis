@@ -2,8 +2,8 @@ import json
 from flask import Flask
 from flask import request
 from flask_cors import CORS
-from analysis.faiss_similarity import FAISSIndex
-from analysis.app_config import TEXT_EMBEDDING_LARGE_ALL, WIKI_LABELS
+from faiss_similarity import FAISSIndex
+from app_config import TEXT_EMBEDDING_LARGE_ALL, WIKI_LABELS
 
 app = Flask(__name__)
 CORS(app)
@@ -14,7 +14,7 @@ fi.build_index()
 
 @app.route('/similarity/faiss/nn/<qnode>', methods=['GET'])
 def faiss_nn(qnode):
-    k = request.get("k", 5)
+    k = request.args.get("k", 5)
     results = fi.nearest_neighbors(qnode, k)
     return json.dumps(results), 200
 

@@ -57,7 +57,7 @@ class FAISSIndex(object):
             qnode = self.id_to_qnode_dict[g]
             if query_qnode != qnode:
                 results.append({
-                    'sim': d[0][h],
+                    'sim': float(d[0][h]),
                     'qnode1': query_qnode,
                     'qnode1_label': self.qnode_to_label_dict[query_qnode],
                     'qnode1_sentence': self.qnode_to_sentence_dict[query_qnode],
