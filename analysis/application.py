@@ -1,4 +1,5 @@
 import json
+import traceback
 from flask import Flask
 from flask import request
 from flask_cors import CORS
@@ -15,10 +16,11 @@ fi.build_index()
 @app.route('/similarity/faiss/nn/<qnode>', methods=['GET'])
 def faiss_nn(qnode):
     try:
-        k = request.args.get("k", 5)
+        k = int(request.args.get("k", 5)) + 1
         results = fi.nearest_neighbors(qnode, k)
         return json.dumps(results), 200
     except Exception as e:
+        traceback.print_exc()
         return {'Error': str(e)}, 500
 
 
