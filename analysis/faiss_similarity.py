@@ -54,6 +54,8 @@ class FAISSIndex(object):
         if query_qnode not in self.qnode_to_vector_dict:
             return None
         results = []
+        print(self.qnode_to_vector_dict[query_qnode])
+        print(type(self.qnode_to_vector_dict[query_qnode]))
         d, i = self.index.search(self.qnode_to_vector_dict[query_qnode], k)
         for h, g in enumerate(i[0]):
             qnode = self.id_to_qnode_dict[g]
@@ -69,5 +71,32 @@ class FAISSIndex(object):
                     _['qnode1_sentence'] = self.qnode_to_sentence_dict[query_qnode]
                     _['qnode2_sentence'] = self.qnode_to_sentence_dict[qnode]
                 results.append(_)
+
+        return results
+
+    def nearest_neighbors_batch(self, query_qnodes, k=5, debug=False):
+        if not isinstance(query_qnodes, list):
+            query_qnodes = [query_qnodes]
+
+        query_vectors = [self.qnode_to_vector_dict[q][0] for q in query_qnodes]
+        query_vectors = np.array(query_vectors)
+        results = []
+        distances, ids = self.index.search(query_vectors, k)
+        for q_id_index, nns in enumerate(ids):
+            qnode = query_qnodes[q_id_index]
+            for i, nn in enumerate(nns):
+                qnode2 = self.id_to_qnode_dict[ids[q_id_index][i]]
+                if qnode != qnode2:
+                    _ = {
+                        'sim': float(distances[q_id_index][i]),
+                        'qnode1': qnode,
+                        'qnode1_label': self.qnode_to_label_dict.get(qnode, ""),
+                        'qnode2': qnode2,
+                        'qnode2_label': self.qnode_to_label_dict.get(qnode2, "")
+                    }
+                    if debug:
+                        _['qnode1_sentence'] = self.qnode_to_sentence_dict.get(qnode, "")
+                        _['qnode2_sentence'] = self.qnode_to_sentence_dict.get(qnode2, "")
+                    results.append(_)
 
         return results
