@@ -31,7 +31,8 @@ def faiss_nn(qnode):
 def faiss_nn_sentence(sentence):
     try:
         k = int(request.args.get("k", 5))
-        results = fi.nearest_neighbor_sentence(sentence, k)
+        debug = request.args.get("debug", "false").lower() == 'true'
+        results = fi.nearest_neighbor_sentence(sentence, k, debug=debug)
         return json.dumps(results), 200
     except Exception as e:
         traceback.print_exc()

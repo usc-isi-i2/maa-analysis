@@ -76,10 +76,10 @@ class FAISSIndex(object):
 
         return results
 
-    def nearest_neighbor_sentence(self, sentence, k=5):
+    def nearest_neighbor_sentence(self, sentence, k=5, debug=False):
         sentence_vector = self.ce.get_vectors(sentence)
         results = []
-        
+
         d, i = self.index.search(sentence_vector, k)
         for h, g in enumerate(i[0]):
             qnode = self.id_to_qnode_dict[g]
@@ -89,6 +89,8 @@ class FAISSIndex(object):
                 'qnode': qnode,
                 'qnode_label': self.qnode_to_label_dict[qnode]
             }
+            if debug:
+                _['qnode_sentence'] = self.qnode_to_sentence_dict[qnode]
 
             results.append(_)
         return results
