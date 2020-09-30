@@ -74,3 +74,11 @@ kgtk text-embedding $v_path/wikidata_maa_subgraph_sorted_2.tsv \
 #  --parallel 1 --debug \
 #  --isa-properties P31 P279 P106 P39 P1382 P373 P452
 #  --save-embedding-sentence > $v_path/text_embeddings_10000.tsv
+
+
+kgtk text-embedding $v_path/Q359442.tsv \
+  --model roberta-large-nli-mean-tokens \
+  --property-labels-file $v_path/qnodes-properties-labels-for-V3.2.0_KB.tsv \
+  --parallel 1 --debug \
+  --isa-properties P31 P279 P106 P39 P1382 P373 P452 \
+  --save-embedding-sentence > $v_path/Q359442_embeddings.tsv

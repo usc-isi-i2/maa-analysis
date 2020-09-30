@@ -5,3 +5,4 @@ pandas
 flask
 flask-cors
 faiss-cpu
+sentence_transformers

@@ -27,6 +27,17 @@ def faiss_nn(qnode):
         return {'Error': str(e)}, 500
 
 
+@app.route('/similarity/faiss/nn/sentence/<sentence>', methods=['GET'])
+def faiss_nn_sentence(sentence):
+    try:
+        k = int(request.args.get("k", 5))
+        results = fi.nearest_neighbor_sentence(sentence, k)
+        return json.dumps(results), 200
+    except Exception as e:
+        traceback.print_exc()
+        return {'Error': str(e)}, 500
+
+
 @app.route('/')
 def is_alive():
     return 'hello from Qnode Similarity', 200

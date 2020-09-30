@@ -1,7 +1,8 @@
+import gzip
 import faiss
 import numpy as np
 import pandas as pd
-import gzip
+from compute_embedding_vectors import ComputeEmbeddings
 
 
 class FAISSIndex(object):
@@ -13,6 +14,7 @@ class FAISSIndex(object):
         self.id_to_qnode_dict = {}
         self.qnode_to_label_dict = self.create_labels_dict(labels_file_path)
         self.qnode_to_sentence_dict = {}
+        self.ce = ComputeEmbeddings()
 
     def create_labels_dict(self, labels_file):
         all_labels_df = pd.read_csv(labels_file, sep='\t')
@@ -72,6 +74,23 @@ class FAISSIndex(object):
                     _['qnode2_sentence'] = self.qnode_to_sentence_dict[qnode]
                 results.append(_)
 
+        return results
+
+    def nearest_neighbor_sentence(self, sentence, k=5):
+        sentence_vector = self.ce.get_vectors(sentence)
+        results = []
+        
+        d, i = self.index.search(sentence_vector, k)
+        for h, g in enumerate(i[0]):
+            qnode = self.id_to_qnode_dict[g]
+            _ = {
+                'sim': float(d[0][h]),
+                'input_sentence': sentence,
+                'qnode': qnode,
+                'qnode_label': self.qnode_to_label_dict[qnode]
+            }
+
+            results.append(_)
         return results
 
     def nearest_neighbors_batch(self, query_qnodes, k=5, debug=False):
