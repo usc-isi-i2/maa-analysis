@@ -9,9 +9,7 @@ class FAISSIndex(object):
     def __init__(self, text_embedding_path, labels_file_path):
         self.text_embedding_path = text_embedding_path
         self.index = None
-        self.qnode_to_id_dict = {}
         self.qnode_to_vector_dict = {}
-        self.id_to_qnode_dict = {}
         self.qnode_to_label_dict = self.create_labels_dict(labels_file_path)
         self.qnode_to_sentence_dict = {}
         self.ce = ComputeEmbeddings()
@@ -28,23 +26,22 @@ class FAISSIndex(object):
             f = gzip.open(self.text_embedding_path, mode='rt')
         else:
             f = open(self.text_embedding_path)
-        id = 0
+
         ids = []
         vectors = []
         for line in f:
             vals = line.split('\t')
             if vals[0].startswith('Q'):
+                qnode = vals[0]
+                # use the number part of Qnodes as id
+                id = int(qnode[1:])
                 if vals[1] == 'embedding_sentence':
-                    self.qnode_to_sentence_dict[vals[0]] = vals[2]
+                    self.qnode_to_sentence_dict[qnode] = vals[2]
                 if vals[1] == 'text_embedding':
-                    self.qnode_to_id_dict[vals[0]] = id
-                    self.id_to_qnode_dict[id] = vals[0]
-
-                    id += 1
                     x = vals[2].strip().split(',')
                     x = [np.float32(r) for r in x]
-                    self.qnode_to_vector_dict[vals[0]] = np.array([x])
-                    ids.append(self.qnode_to_id_dict[vals[0]])
+                    self.qnode_to_vector_dict[qnode] = np.array([x])
+                    ids.append(id)
                     vectors.append(x)
                     index = faiss.IndexFlatL2(len(x))
                     if self.index is None:
@@ -56,11 +53,9 @@ class FAISSIndex(object):
         if query_qnode not in self.qnode_to_vector_dict:
             return None
         results = []
-        print(self.qnode_to_vector_dict[query_qnode])
-        print(type(self.qnode_to_vector_dict[query_qnode]))
         d, i = self.index.search(self.qnode_to_vector_dict[query_qnode], k)
         for h, g in enumerate(i[0]):
-            qnode = self.id_to_qnode_dict[g]
+            qnode = f'Q{g}'
             if query_qnode != qnode:
                 _ = {
                     'sim': float(d[0][h]),
@@ -82,7 +77,7 @@ class FAISSIndex(object):
 
         d, i = self.index.search(sentence_vector, k)
         for h, g in enumerate(i[0]):
-            qnode = self.id_to_qnode_dict[g]
+            qnode = f'Q{g}'
             _ = {
                 'sim': float(d[0][h]),
                 'input_sentence': sentence,
@@ -106,7 +101,8 @@ class FAISSIndex(object):
         for q_id_index, nns in enumerate(ids):
             qnode = query_qnodes[q_id_index]
             for i, nn in enumerate(nns):
-                qnode2 = self.id_to_qnode_dict[ids[q_id_index][i]]
+                # qnode2 = self.id_to_qnode_dict[ids[q_id_index][i]]
+                qnode2 = f'Q{ids[q_id_index][i]}'
                 if qnode != qnode2:
                     _ = {
                         'sim': float(distances[q_id_index][i]),
