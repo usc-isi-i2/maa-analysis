@@ -1,7 +1,8 @@
 import gzip
 import faiss
 import numpy as np
-import pandas as pd
+from utils import Utils
+from sklearn.metrics.pairwise import cosine_similarity
 from compute_embedding_vectors import ComputeEmbeddings
 
 
@@ -10,16 +11,9 @@ class FAISSIndex(object):
         self.text_embedding_path = text_embedding_path
         self.index = None
         self.qnode_to_vector_dict = {}
-        self.qnode_to_label_dict = self.create_labels_dict(labels_file_path)
+        self.qnode_to_label_dict = Utils.create_labels_dict(labels_file_path)
         self.qnode_to_sentence_dict = {}
         self.ce = ComputeEmbeddings()
-
-    def create_labels_dict(self, labels_file):
-        all_labels_df = pd.read_csv(labels_file, sep='\t')
-        labels_dict = {}
-        for i, row in all_labels_df.iterrows():
-            labels_dict[row['node1']] = row['label']
-        return labels_dict
 
     def build_index(self):
         if self.text_embedding_path.endswith(".gz"):
@@ -101,7 +95,6 @@ class FAISSIndex(object):
         for q_id_index, nns in enumerate(ids):
             qnode = query_qnodes[q_id_index]
             for i, nn in enumerate(nns):
-                # qnode2 = self.id_to_qnode_dict[ids[q_id_index][i]]
                 qnode2 = f'Q{ids[q_id_index][i]}'
                 if qnode != qnode2:
                     _ = {
@@ -117,3 +110,15 @@ class FAISSIndex(object):
                     results.append(_)
 
         return results
+
+    def compute_cosine_similarity(self, qnode1, qnode2):
+        if qnode1 not in self.qnode_to_vector_dict or qnode2 not in self.qnode_to_vector_dict:
+            return -1
+        sim = cosine_similarity(self.qnode_to_vector_dict[qnode1], self.qnode_to_vector_dict[qnode2])[0][0]
+        return {
+            'sim': sim,
+            'qnode1_label': self.qnode_to_label_dict[qnode1],
+            'qnode1_sentence': self.qnode_to_sentence_dict[qnode1],
+            'qnode2_label': self.qnode_to_label_dict[qnode2],
+            'qnode2_sentence': self.qnode_to_sentence_dict[qnode2]
+        }
